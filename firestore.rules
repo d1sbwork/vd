@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net Default Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security Primaries & Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == "disbalanceg2@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin")
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Telegram subscribers list (used by the bot server)
+    match /telegram_subscribers/{chatId} {
+      allow read, write: if true;
+    }
+
+    // Users Collection Protection
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 32
+            && data.standoffId is string && data.standoffId.size() >= 3 && data.standoffId.size() <= 20
+            && data.role is string && (data.role == "user" || data.role == "verified_host" || data.role == "admin")
+            && (!data.keys().hasAll(['isBanned']) || data.isBanned is bool);
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) && (
+        incoming().role == "user" ||
+        incoming().role == "verified_host" ||
+        (incoming().role == "admin" && request.auth.token.email == "disbalanceg2@gmail.com" && request.auth.token.email_verified == true)
+      );
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && isValidUser(incoming()) && (incoming().role == existing().role || (existing().role == "user" && incoming().role == "verified_host"))
+         && incoming().diff(existing()).affectedKeys().hasAny(['displayName', 'avatarUrl', 'standoffId', 'aimReactionBest', 'aimAccuracyBest', 'sprayAccuracyBest', 'role', 'isBanned'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Lobbies Collection Protection
+    match /lobbies/{lobbyId} {
+      function isValidLobby(data) {
+        return data.creatorId is string && data.creatorId.size() <= 128
+            && data.creatorName is string && data.creatorName.size() <= 32
+            && data.gameMode is string && data.gameMode.size() <= 32
+            && data.map is string && data.map.size() <= 32
+            && data.lobbyCode is string && data.lobbyCode.size() <= 150
+            && data.status is string && (data.status == "active" || data.status == "full" || data.status == "started" || data.status == "closed")
+            && data.maxPlayers is number && data.maxPlayers >= 2 && data.maxPlayers <= 20
+            && data.joinedPlayerCount is number && data.joinedPlayerCount >= 1 && data.joinedPlayerCount <= 20
+            && (!data.keys().hasAll(['joinedPlayers']) || data.joinedPlayers is list);
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && incoming().creatorId == request.auth.uid && isValidLobby(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && (
+        (existing().creatorId == request.auth.uid && isValidLobby(incoming()) && incoming().creatorId == existing().creatorId && incoming().createdAt == existing().createdAt && (
+          incoming().diff(existing()).affectedKeys().hasAny(['lobbyCode', 'map', 'gameMode', 'maxPlayers', 'joinedPlayerCount', 'joinedPlayers', 'description', 'status', 'updatedAt'])
+        )) ||
+        // Allow any user to register as a lobby member by editing the player count state and updating the players list
+        (isValidLobby(incoming()) && (incoming().diff(existing()).affectedKeys().hasOnly(['joinedPlayerCount', 'joinedPlayers', 'updatedAt']) || incoming().diff(existing()).affectedKeys().hasOnly(['joinedPlayerCount', 'updatedAt'])) && incoming().creatorId == existing().creatorId && incoming().lobbyCode == existing().lobbyCode) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (existing().creatorId == request.auth.uid || isAdmin());
+    }
+
+    // Trusted Administrators Collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Standoff 2 Match Hub",
+  "description": "Real-time matchmaking lobby finder, react-aim and spray recoil control trainers, and player profile card managers for Standoff 2.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

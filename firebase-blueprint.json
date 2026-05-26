@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Store player profiles, stats, Standoff 2 game ID, and account permission roles.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "User custom gaming nickname."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Url of the player's avatar graphic."
+        },
+        "standoffId": {
+          "type": "string",
+          "description": "Standoff 2 game numeric ID (e.g. 12948194)."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user, such as 'user', 'admin', or 'verified_host'."
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp indicating when the player registered."
+        },
+        "aimReactionBest": {
+          "type": "number",
+          "description": "Best time in milliseconds for the aiming and reaction training."
+        },
+        "aimAccuracyBest": {
+          "type": "number",
+          "description": "Highest accuracy scored in the target reaction training."
+        },
+        "sprayAccuracyBest": {
+          "type": "number",
+          "description": "Highest match rating in spray control training."
+        }
+      },
+      "required": ["displayName", "standoffId", "role"]
+    },
+    "Lobby": {
+      "title": "Standoff 2 Lobby",
+      "description": "Lobby entries created by host players for other users to view and join.",
+      "type": "object",
+      "properties": {
+        "creatorId": {
+          "type": "string",
+          "description": "The UID of the host player."
+        },
+        "creatorName": {
+          "type": "string",
+          "description": "Gaming nickname of the lobby host."
+        },
+        "creatorAvatar": {
+          "type": "string",
+          "description": "Avatar of the lobby host."
+        },
+        "creatorStandoffId": {
+          "type": "string",
+          "description": "Standoff 2 numeric ID of the lobby host."
+        },
+        "creatorIsVerified": {
+          "type": "boolean",
+          "description": "Whether the host is a Verified Host or Admin on the platform."
+        },
+        "gameMode": {
+          "type": "string",
+          "description": "Standoff 2 custom game mode (e.g., 'classic_dm', 'spray_training', 'matchmaking', 'custom')."
+        },
+        "map": {
+          "type": "string",
+          "description": "The map selected for this match (e.g. 'Sandstone', 'Province', 'Rust')."
+        },
+        "lobbyCode": {
+          "type": "string",
+          "description": "Standoff 2 standard numeric lobby/room code (e.g. 481958) that hosts give to players."
+        },
+        "maxPlayers": {
+          "type": "number",
+          "description": "Maximum number of allowed participants."
+        },
+        "joinedPlayerCount": {
+          "type": "number",
+          "description": "Current number of declared joiners inside the app."
+        },
+        "description": {
+          "type": "string",
+          "description": "Lobby description or specific rule guidelines."
+        },
+        "status": {
+          "type": "string",
+          "description": "Lobby state: 'active', 'full', 'started', or 'closed'."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": ["creatorId", "creatorName", "gameMode", "map", "lobbyCode", "status", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin Record",
+      "description": "Simple document marking UI admin status for the UID.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The admin user email."
+        }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Player profiles stored by user ID."
+    },
+    "/lobbies/{lobbyId}": {
+      "schema": "Lobby",
+      "description": "Active/closed Standoff 2 client lobbies."
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Registered administrators list."
+    }
+  }
+}
